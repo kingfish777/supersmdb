@@ -1,0 +1,27 @@
+
+
+LOAD DATABASE
+     FROM      mysql://root@localhost/causalehr
+     INTO postgresql://postgreslocalhost/causalehr
+
+ WITH include drop, create tables, create indexes, reset sequences,
+      workers = 8, concurrency = 1,
+      multiple readers per thread, rows per range = 50000
+
+  SET PostgreSQL PARAMETERS
+      maintenance_work_mem to '128MB',
+      work_mem to '12MB',
+      search_path to 'causalehr, public, "$user"'
+
+  SET MySQL PARAMETERS
+      net_read_timeout  = '120',
+      net_write_timeout = '120'
+
+ CAST type bigint when (= precision 20) to bigserial drop typemod,
+      type date drop not null drop default using zero-dates-to-null,
+      -- type tinyint to boolean using tinyint-to-boolean,
+      type year to integer
+
+ BEFORE LOAD DO
+   $$ create schema if not exists causalehr; $$,
+   $$ alter database sakila set search_path to causalehr, public; $$;
